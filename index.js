@@ -120,7 +120,6 @@ async function init(_web3, _numCpus) {
         /* Initialize the web server. */
         // NOTE: This is for the MASTER ONLY
         await webServer.init(https_enabled, webInterface, peerInterface)
-        return
 
         /* Update peer interface. */
         peerInterface.update()
