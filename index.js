@@ -1,167 +1,157 @@
+const cluster = require('cluster')
+const fs = require('fs')
 
-var INFURA_ROPSTEN_URL = 'https://ropsten.infura.io/gmXEVo5luMPUGPqg6mhy';
-var INFURA_MAINNET_URL = 'https://mainnet.infura.io/gmXEVo5luMPUGPqg6mhy';
+/* Initialize Minado endpoints. */
+const INFURA_ROPSTEN_URL = 'https://ropsten.infura.io/v3/97524564d982452caee95b257a54064e'
+const INFURA_MAINNET_URL = 'https://mainnet.infura.io/v3/97524564d982452caee95b257a54064e'
 
+const https_enabled = process.argv[2] === 'https'
 
-var https_enabled = process.argv[2] === 'https';
-var pool_env = 'production';
+/* Initialize pool environment. */
+let pool_env = 'production'
 
-if( process.argv[2] == "test" )
-{
-  pool_env = 'test'
+if (process.argv[2] === 'test') {
+    pool_env = 'test'
+} else if (process.argv[2] === 'staging' ) {
+    pool_env = 'staging'
 }
-
-if( process.argv[2] == "staging" )
-{
-  pool_env = 'staging'
-}
-
-var cluster = require('cluster')
 
 const poolConfig = require('./pool.config').config
 
-console.log(poolConfig)
+console.log('\nPool Configuration\n', JSON.stringify(poolConfig, null, 4))
+console.log('\nInitializing...')
 
-console.log('init');
+/* Initailize interfaces. */
+const redisInterface = require('./lib/redis-interface')
+const peerInterface  = require('./lib/peer-interface')
+const tokenInterface = require('./lib/token-interface')
+const webInterface   = require('./lib/web-interface')
 
-fs = require('fs');
+/* Initialize web server. */
+const webServer = require('./lib/web-server')
 
-var redisInterface = require('./lib/redis-interface')
-var peerInterface = require('./lib/peer-interface')
-var tokenInterface = require('./lib/token-interface')
-var webInterface = require('./lib/web-interface')
-var webServer =  require('./lib/web-server')
-var diagnosticsManager =  require('./lib/diagnostics-manager')
-var accountConfig;
-var Web3 = require('web3')
+/* Initialize diagnostics manager. */
+const diagnosticsManager = require('./lib/diagnostics-manager')
 
-var web3 = new Web3()
+/* Initialize Web3. */
+const Web3 = require('web3')
 
+/* Initailize new Web3 instance. */
+const web3 = new Web3()
 
-var specified_web3 = poolConfig.web3provider;
+/* Initialize account configuration. */
+let accountConfig = {}
 
- if(specified_web3 != null)
- {
-   web3.setProvider(specified_web3)
-   console.log('using web3',specified_web3)
- }
+/* Initialize web3 provider. */
+const specified_web3 = poolConfig.web3provider
 
-if(pool_env == "test"){
-  console.log("Using test mode!!! - Ropsten ")
-  if(specified_web3 == null)
-  {
-    web3.setProvider(INFURA_ROPSTEN_URL)
-  }
-   accountConfig = require('./test.account.config').accounts;
-}else if(pool_env == "staging"){
-    console.log("Using staging mode!!! - Mainnet ")
-    if(specified_web3 == null)
-    {
-     web3.setProvider(INFURA_MAINNET_URL)
-   }
-   accountConfig = require('./account.config').accounts;
-}else{
-    if(specified_web3 == null)
-    {
-     web3.setProvider(INFURA_MAINNET_URL)
+/* Validate web3 provider. */
+if (specified_web3 !== null) {
+    web3.setProvider(specified_web3)
+
+    console.log(`Connecting to provided web3 [ ${specified_web3} ]`)
+}
+
+if (pool_env === 'test') {
+    console.log('RUNNING IN TEST MODE [ ROPSTEN ]')
+
+    /* Validate web3 provider. */
+    if (specified_web3 === null) {
+        web3.setProvider(INFURA_ROPSTEN_URL)
     }
-   accountConfig = require('./account.config').accounts;
+
+    /* Set accounts. */
+    accountConfig = require('./test.account.config').accounts
+} else if (pool_env == 'staging') {
+    console.log('RUNNING IN STAGING MODE [ MAINNET ]')
+
+    /* Validate web3 provider. */
+    if (specified_web3 === null) {
+        web3.setProvider(INFURA_MAINNET_URL)
+    }
+
+    /* Set accounts. */
+    accountConfig = require('./account.config').accounts
+} else {
+    console.log('RUNNING IN DEFAULT MODE [ MAINNET ]')
+
+    /* Validate web3 provider. */
+    if (specified_web3 === null) {
+        web3.setProvider(INFURA_MAINNET_URL)
+    }
+
+    /* Set accounts. */
+    accountConfig = require('./account.config').accounts
 }
 
+init(web3, 1)
 
-init(web3);
+/**
+ * Init
+ *
+ * Create a Master Cluster with worker nodes.
+ */
+async function init(_web3, _numCpus) {
+    // Code to run if we're in the master process
 
+    if (cluster.isMaster) {
+        // Create a worker for each CPU
+        for (let i = 0; i < _numCpus; i++) {
+            // cluster.fork()
+        }
 
-/*
-async function init(web3)
-{
+        /* Initialize redis interface. */
+        return await redisInterface.init()
 
+        /* Initialize web interface. */
+        // NOTE: This is for the MASTER ONLY
+        await webInterface.init(_web3, accountConfig, poolConfig, redisInterface)
 
-        // Code to run if we're in the master process
-      if (cluster.isMaster) {
+        /* Initailize token interface. */
+        await tokenInterface.init(redisInterface, _web3, accountConfig, poolConfig, pool_env)
 
-          // Count the machine's CPUs
-        //  var cpuCount = require('os').cpus().length;
+        /* Initialize peer interface. */
+        await peerInterface.init(_web3, accountConfig, poolConfig, redisInterface, tokenInterface, pool_env) // initJSONRPCServer()
 
-          // Create a worker for each CPU
-          for (var i = 0; i < 6; i += 1) {
-              cluster.fork();
-          }
+        /* Initailize diagnostics manager. */
+        // NOTE: This is for the MASTER ONLY
+        await diagnosticsManager.init(redisInterface, webInterface, peerInterface)
 
+        /* Initialize the web server. */
+        // NOTE: This is for the MASTER ONLY
+        await webServer.init(https_enabled, webInterface, peerInterface)
 
-           await redisInterface.init()
-           await webInterface.init(web3,accountConfig,poolConfig,redisInterface)
-           await tokenInterface.init(redisInterface,web3,accountConfig,poolConfig,pool_env)
-           await peerInterface.init(web3,accountConfig,poolConfig,redisInterface,tokenInterface,pool_env) //initJSONRPCServer();
-           await diagnosticsManager.init(redisInterface,webInterface,peerInterface)
+        /* Update peer interface. */
+        peerInterface.update()
+    } else {
+        // Code to run if we're in a worker process
 
-           await webServer.init(https_enabled,webInterface,peerInterface)
+        const worker_id = cluster.worker.id
 
+        /* Initialize redis interface. */
+        await redisInterface.init()
 
-      // Code to run if we're in a worker process
-      } else {
-        var worker_id = cluster.worker.id
+        /* Initailize token interface. */
+        await tokenInterface.init(redisInterface, _web3, accountConfig, poolConfig, pool_env)
 
+        /* Initialize peer interface. */
+        await peerInterface.init(_web3, accountConfig, poolConfig, redisInterface, tokenInterface, pool_env) // initJSONRPCServer()
 
-            if(worker_id == 1)
-            {
-               await redisInterface.init()
-               await tokenInterface.init(redisInterface,web3,accountConfig,poolConfig,pool_env)
+        /* Initialize redis interface. */
+        // FIXME: Why are we doing this again??
+        await redisInterface.init()
 
+        /* Initailize token interface. */
+        // FIXME: Why are we doing this again??
+        await tokenInterface.init(redisInterface, _web3, accountConfig, poolConfig, pool_env)
 
-               await peerInterface.init(web3,accountConfig,poolConfig,redisInterface,tokenInterface,pool_env) //initJSONRPCServer();
-               tokenInterface.update();
-               peerInterface.update();
-            }
-            if(worker_id == 2)
-            {
-              await redisInterface.init()
-              await tokenInterface.init(redisInterface,web3,accountConfig,poolConfig,pool_env)
-              await peerInterface.init(web3,accountConfig,poolConfig,redisInterface,tokenInterface,pool_env) //initJSONRPCServer();
-              //tokenInterface.update();
-              peerInterface.listenForJSONRPC(8080);
-            }
-      }
+        /* Start peer interface listener. */
+        peerInterface.listenForJSONRPC(8080)
 
+        /* Update token interface. */
+        tokenInterface.update()
 
-
-
-
+        /* Update peer interface. */
+        peerInterface.update()
+    }
 }
-*/
-async function init(web3)
-{
-      // Code to run if we're in the master process
-      if (cluster.isMaster) {
-
-          // Create a worker for each CPU
-          for (var i = 0; i < 8; i += 1) {
-              cluster.fork();
-          }
-
-
-           await redisInterface.init()
-           await webInterface.init(web3,accountConfig,poolConfig,redisInterface)
-           await tokenInterface.init(redisInterface,web3,accountConfig,poolConfig,pool_env)
-           await peerInterface.init(web3,accountConfig,poolConfig,redisInterface,tokenInterface,pool_env) //initJSONRPCServer();
-           await diagnosticsManager.init(redisInterface,webInterface,peerInterface)
-
-           await webServer.init(https_enabled,webInterface,peerInterface)
-
-            peerInterface.update();
-
-      // Code to run if we're in a worker process
-      } else {
-        var worker_id = cluster.worker.id
-
-              await redisInterface.init()
-              await tokenInterface.init(redisInterface,web3,accountConfig,poolConfig,pool_env)
-              await peerInterface.init(web3,accountConfig,poolConfig,redisInterface,tokenInterface,pool_env) //initJSONRPCServer();
-              await redisInterface.init()
-              await tokenInterface.init(redisInterface,web3,accountConfig,poolConfig,pool_env)
-              peerInterface.listenForJSONRPC(8080);
-              tokenInterface.update();
-              peerInterface.update();
-      }
-}
-
