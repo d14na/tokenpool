@@ -109,10 +109,10 @@ async function init(_web3, _numCpus) {
 
         /* Initailize token interface. */
         await tokenInterface.init(redisInterface, _web3, accountConfig, poolConfig, pool_env)
-        return
 
         /* Initialize peer interface. */
         await peerInterface.init(_web3, accountConfig, poolConfig, redisInterface, tokenInterface, pool_env) // initJSONRPCServer()
+        return
 
         /* Initailize diagnostics manager. */
         // NOTE: This is for the MASTER ONLY
