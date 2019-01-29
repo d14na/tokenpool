@@ -97,7 +97,7 @@ async function init(_web3, _numCpus) {
     if (cluster.isMaster) {
         // Create a worker for each CPU
         for (let i = 0; i < _numCpus; i++) {
-            // cluster.fork()
+            cluster.fork()
         }
 
         /* Initialize redis interface. */
@@ -147,6 +147,7 @@ async function init(_web3, _numCpus) {
 
         /* Start peer interface listener. */
         peerInterface.listenForJSONRPC(8080)
+        return
 
         /* Update token interface. */
         tokenInterface.update()
