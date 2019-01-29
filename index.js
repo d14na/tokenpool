@@ -116,11 +116,11 @@ async function init(_web3, _numCpus) {
         /* Initailize diagnostics manager. */
         // NOTE: This is for the MASTER ONLY
         await diagnosticsManager.init(redisInterface, webInterface, peerInterface)
-        return
 
         /* Initialize the web server. */
         // NOTE: This is for the MASTER ONLY
         await webServer.init(https_enabled, webInterface, peerInterface)
+        return
 
         /* Update peer interface. */
         peerInterface.update()
