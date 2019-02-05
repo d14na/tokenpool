@@ -1,5 +1,5 @@
 const config = {
-    minimumShareDifficulty : 105,
+    minimumShareDifficulty : 65536,
     solutionGasPriceWei    : 10,
     transferGasPriceWei    : 6,
     poolTokenFee           : 15,
