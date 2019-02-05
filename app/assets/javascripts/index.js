@@ -1,75 +1,52 @@
+/* Initialize VueJs. */
+import Vue from 'vue'
 
-const $ = require('jquery');
+import AccountDashboard from './account-dashboard'
+import AccountRenderer from './account-renderer'
+import AlertRenderer from './alert-renderer'
+import HomeDashboard from './home-dashboard'
+import HomeRenderer from './home-renderer'
+import OverviewDashboard from './overview-dashboard'
+import OverviewRenderer from './overview-renderer'
+import ProfileRenderer from './profile-renderer'
 
 import logo from '../images/0xbitcoin.png'
 import githubLogo from '../images/GitHub-Mark-64px.png'
 
-import Vue from 'vue'
+/* Initialize JQuery. */
+const $ = require('jquery')
 
-import AlertRenderer from './alert-renderer'
+const account = new AccountDashboard()
+const accountRenderer = new AccountRenderer()
+const alertRenderer = new AlertRenderer()
+const overview = new OverviewDashboard()
+const overviewRenderer = new OverviewRenderer()
+const profileRenderer = new ProfileRenderer()
+const home = new HomeDashboard()
+const homeRenderer = new HomeRenderer()
 
-import OverviewRenderer from './overview-renderer'
-import HomeRenderer from './home-renderer'
-import AccountRenderer from './account-renderer'
-import ProfileRenderer from './profile-renderer'
-
-import EthHelper from './ethhelper'
-
-
-import HomeDashboard from './home-dashboard'
-import AccountDashboard from './account-dashboard'
-import OverviewDashboard from './overview-dashboard'
-
-
-//var web3 = this.connectWeb3();
-
-var overviewRenderer = new OverviewRenderer();
-var homeRenderer = new HomeRenderer();
-var accountRenderer = new AccountRenderer();
-var alertRenderer = new AlertRenderer();
-var profileRenderer = new ProfileRenderer();
-//var ethHelper = new EthHelper();
-var home = new HomeDashboard();
-var account = new AccountDashboard();
-var overview = new OverviewDashboard();
-
-var navbar = new Vue({
-  el: '#navbar',
-  data: {
-    brandImageUrl: logo,
-    githubLogo: githubLogo
-  }
+const navbar = new Vue({
+    el: '#navbar',
+    data: {
+        brandImageUrl: logo,
+        githubLogo: githubLogo
+    }
 })
 
+$(document).ready(function () {
+    if ($("#home").length > 0) {
+        home.init(homeRenderer)
+    }
 
-$(document).ready(function(){
-
-
-      if($("#home").length > 0){
-      //  var web3 = ethHelper.init( alertRenderer);
-
-        home.init(homeRenderer);
-      }
-
-      if($("#profile").length > 0){
+    if ($("#profile").length > 0) {
         profileRenderer.init()
-      }
+    }
 
+    if ($("#account").length > 0) {
+        account.init(accountRenderer)
+    }
 
-      if($("#account").length > 0){
-        //var web3 = ethHelper.init( alertRenderer);
-
-        account.init(accountRenderer);
-      }
-
-
-      if($("#overview").length > 0){
-      //  var web3 = ethHelper.init( alertRenderer);
-
-        overview.init(overviewRenderer);
-      }
-
-});
-
-
-//dashboardRenderer.hide();
+    if ($("#overview").length > 0) {
+        overview.init(overviewRenderer)
+    }
+})

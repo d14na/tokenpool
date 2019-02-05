@@ -1,206 +1,159 @@
+const fs = require('fs')
+const redisInterface = require('../lib/redis-interface')
 
-var fs = require('fs');
+console.log('Logging Payments...')
 
-var redisInterface = require('../lib/redis-interface')
+/**
+ * Run Payment Log
+ */
+async function run() {
+    await redisInterface.init()
 
-console.log("Logging Payments...")
+    const paymentLog    = {}
+    paymentLog.payments = []
 
+    const balancePaymentKeyList  = []
+    const balancePayments        = []
+    const balanceTransferKeyList = []
+    const balanceTransfers       = []
+    const balanceTransfersTable  = {}
+    const owedPayments           = {}
 
-async function init()
-{
+    await new Promise(function (fulfilled, rejected) {
+        redisInterface.getRedisClient().keys('*',  function (err, keys) {
+            keys.forEach(function (key, i){
+                //  if(!key.toLowerCase().endsWith('0xf13e2680a930aE3a640188afe0F94aFCeBe7023b'.toLowerCase())) return;
+                //  console.log(key);
 
-   await redisInterface.init();
+                if (key.startsWith('balance_payments')) { // get all of the keys that have balance transfer (blockchain transactions)
+                    balancePaymentKeyList.push(key)
+                }
+            })
 
-  var paymentLog = {};
+            fulfilled()
+        })
+    })
 
+    console.log('balancePaymentKeyList', balancePaymentKeyList)
 
-  paymentLog.payments = [];
+    await new Promise(async function (fulfilled, rejected) {
+        await asyncForEach(balancePaymentKeyList, async function (key, i) {
+            console.log('key', key)
 
+            var balancePaymentList = await redisInterface.getParsedElementsOfListInRedis(key)
 
-  var balancePaymentKeyList = [];
-  var balancePayments = [];
+            console.log('length', balancePaymentList.length)
 
+            for (var j = 0; j < balancePaymentList.length; j++) {
+                var payment = balancePaymentList[j]
+                balancePayments.push(payment)
+                //  console.log(j);
+            }
+        })
 
-    var balanceTransferKeyList = [];
-    var balanceTransfers = [];
-    var balanceTransfersTable = {};
+        fulfilled()
+    })
 
-    var owedPayments = {};
+    await new Promise(function (fulfilled, rejected) {
+        redisInterface.getRedisClient().keys('*',  function (err, keys){
+            keys.forEach( function(key, i){
+                //  if(!key.toLowerCase().endsWith('0xf13e2680a930aE3a640188afe0F94aFCeBe7023b'.toLowerCase())) return;
+                //  console.log(key);
 
-  await new Promise(function (fulfilled,rejected) {
+                if (key.startsWith('balance_transfers')) { // get all of the keys that have balance transfer (blockchain transactions)
+                    balanceTransferKeyList.push(key)
+                }
+            })
 
-        redisInterface.getRedisClient().keys('*',  function(err, keys){
-            keys.forEach( function(key,i){
-          //  if(!key.toLowerCase().endsWith('0xf13e2680a930aE3a640188afe0F94aFCeBe7023b'.toLowerCase())) return;
-          //  console.log(key);
+            fulfilled()
+        })
+    })
 
+    console.log('balanceTransferKeyList', balanceTransferKeyList)
 
-            if(key.startsWith("balance_payments")){ // get all of the keys that have balance transfer (blockchain transactions)
+    await new Promise(async function (fulfilled, rejected) {
+        await asyncForEach(balanceTransferKeyList, async function (key, i){
+            console.log('key', key)
 
-              balancePaymentKeyList.push(key);
+            var balanceTransferList = await redisInterface.getParsedElementsOfListInRedis(key)
+
+            console.log('length', balanceTransferList.length)
+
+            for (let j = 0; j < balanceTransferList.length; j++) {
+                var transfer = balanceTransferList[j]
+
+                balanceTransfers.push(transfer)
+
+                console.log(transfer)
+
+                balanceTransfersTable[transfer.balancePaymentId] = transfer
+
+                //  console.log(j);
+            }
+        })
+
+        fulfilled()
+    })
+
+    const missingTransfers = []
+
+    const OWED_PAYMENT_BLOCK_CUTOFF = 5341507
+
+    for (let i = 0; i < balancePayments.length; i++) {
+        var balancePayment = balancePayments[i]
+
+        // console.log(balancePayment)
+
+        var paymentHash = balancePayment.id
+
+        //console.log(paymentHash)
+
+        var transfer = balanceTransfersTable[paymentHash]
+
+        if (transfer === null && balancePayment.block < OWED_PAYMENT_BLOCK_CUTOFF) {
+            console.log(balancePayment)
+
+            if (owedPayments[balancePayment.minerAddress] === null) {
+                owedPayments[balancePayment.minerAddress] = 0
             }
 
-          });
-
-            fulfilled();
-        });
-
-
-
-    });
-
-
-
-    console.log("balancePaymentKeyList",balancePaymentKeyList)
-
-  await new Promise(async function (fulfilled,rejected) {
-
-    await asyncForEach(balancePaymentKeyList,async function(key,i){
-
-        console.log('key',key)
-          var balancePaymentList = await redisInterface.getParsedElementsOfListInRedis(key)
-
-
-          console.log('length',balancePaymentList.length)
-          for(var j=0;j<balancePaymentList.length;j++ )
-          {
-            var payment = balancePaymentList[j]
-            balancePayments.push(payment)
-          //  console.log(j);
-          }
-
-
-      });
-
-      fulfilled()
-
-
-  });
-
-
-
-
-  await new Promise(function (fulfilled,rejected) {
-
-        redisInterface.getRedisClient().keys('*',  function(err, keys){
-            keys.forEach( function(key,i){
-          //  if(!key.toLowerCase().endsWith('0xf13e2680a930aE3a640188afe0F94aFCeBe7023b'.toLowerCase())) return;
-          //  console.log(key);
-
-
-            if(key.startsWith("balance_transfers")){ // get all of the keys that have balance transfer (blockchain transactions)
-
-              balanceTransferKeyList.push(key);
-            }
-
-          });
-
-            fulfilled();
-        });
-
-
-
-    });
-
-
-
-    console.log("balanceTransferKeyList",balanceTransferKeyList)
-
-  await new Promise(async function (fulfilled,rejected) {
-
-    await asyncForEach(balanceTransferKeyList,async function(key,i){
-
-        console.log('key',key)
-          var balanceTransferList = await redisInterface.getParsedElementsOfListInRedis(key)
-
-
-          console.log('length',balanceTransferList.length)
-          for(var j=0;j<balanceTransferList.length;j++ )
-          {
-            var transfer = balanceTransferList[j]
-            balanceTransfers.push(transfer)
-            console.log(transfer)
-            balanceTransfersTable[transfer.balancePaymentId] = transfer
-
-
-          //  console.log(j);
-          }
-
-
-      });
-
-      fulfilled()
-
-
-  });
-
-
-
-var missingTransfers = [];
-
-var OWED_PAYMENT_BLOCK_CUTOFF = 5341507;
-
-  for(var i=0;i<balancePayments.length;i++)
-   {
-     var balancePayment = balancePayments[i];
-
-    // console.log(balancePayment)
-
-     var paymentHash = balancePayment.id;
-
-     //console.log(paymentHash)
-
-     var transfer = balanceTransfersTable[paymentHash];
-
-     if(transfer==null && balancePayment.block < OWED_PAYMENT_BLOCK_CUTOFF)
-     {
-
-       console.log(balancePayment)
-
-       if(owedPayments[balancePayment.minerAddress] == null){owedPayments[balancePayment.minerAddress]=0}
-       owedPayments[balancePayment.minerAddress] += balancePayment.previousTokenBalance;
-       missingTransfers.push(balancePayment)
-      //  console.log('missing transfer')
-     }
-
-
-
-   }
-
-
-
-    console.log('balancePaymentss',balancePayments.length)
-    console.log('balanceTransferss',balanceTransfers.length)
-    console.log('missingTransfers',missingTransfers.length)
-//    console.log('owedPayments',owedPayments.keys.length)
-
-  paymentLog.payments.push({
-    balancePayments: balancePayments,
-    balanceTransfers: balanceTransfers,
-    missingTransfers: missingTransfers,
-    owedPayments: owedPayments
-   })
-
-
-
-  var paymentLogJSON = JSON.stringify(paymentLog);
-
-  fs.writeFile("./logs/payments-log.json", paymentLogJSON, function(err) {
-      if(err) {
-          return console.log(err);
-      }
-
-      console.log("The file was saved!");
-  });
-
+            owedPayments[balancePayment.minerAddress] += balancePayment.previousTokenBalance
+            missingTransfers.push(balancePayment)
+            // console.log('missing transfer')
+        }
+    }
+
+    console.log('balancePaymentss', balancePayments.length)
+    console.log('balanceTransferss', balanceTransfers.length)
+    console.log('missingTransfers' ,missingTransfers.length)
+    //    console.log('owedPayments', owedPayments.keys.length)
+
+    paymentLog.payments.push({
+        balancePayments  : balancePayments,
+        balanceTransfers : balanceTransfers,
+        missingTransfers : missingTransfers,
+        owedPayments     : owedPayments
+    })
+
+    const paymentLogJSON = JSON.stringify(paymentLog)
+
+    fs.writeFile('./logs/payments-log.json', paymentLogJSON, function (err) {
+        if (err) {
+            return console.log(err)
+        }
+
+        console.log('The file was saved!')
+    })
 }
 
+/* Start running. */
+run()
 
-init();
-
-
+/**
+ * Async For Each
+ */
 async function asyncForEach(array, callback) {
-  for (let index = 0; index < array.length; index++) {
-    await callback(array[index], index, array)
-  }
+    for (let index = 0; index < array.length; index++) {
+        await callback(array[index], index, array)
+    }
 }

@@ -7,5 +7,5 @@ npm install redis
 npm install ethereum-blockies
 npm run webpack
 
-sudo apt-get install python3-pip  libssl-dev -y
+sudo apt-get install python3-pip libssl-dev -y
 sudo pip3 install ethereum

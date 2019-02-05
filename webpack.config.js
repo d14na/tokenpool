@@ -42,7 +42,10 @@ routesData.routes.forEach(function (element) {
 })
 
 module.exports = {
-    entry: ['./app/assets/javascripts/index', './app/assets/stylesheets/application.scss' ],
+    entry: [
+        './app/assets/javascripts/index',
+        './app/assets/stylesheets/application.scss'
+    ],
     output: {
         path: path.resolve(__dirname, 'public'),
         filename: 'bundle.js',

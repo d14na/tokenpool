@@ -2,10 +2,10 @@ const config = {
     minimumShareDifficulty : 65536,
     solutionGasPriceWei    : 10,
     transferGasPriceWei    : 6,
-    poolTokenFee           : 15,
-    minBalanceForTransfer  : 1500000000,
+    poolTokenFee           : 3,
+    minBalanceForTransfer  : 300000000,
     populationLimit        : 100,
-    web3provider           : 'https://ropsten.infura.io/v3/<Project-Id>'
+    web3provider           : 'https://mainnet.infura.io/v3/97524564d982452caee95b257a54064e'
 }
 
 exports.config = config
