@@ -105,21 +105,47 @@ async function init(_web3, _numCpus) {
 
         /* Initialize web interface. */
         // NOTE: This is for the MASTER ONLY
-        await webInterface.init(_web3, accountConfig, poolConfig, redisInterface)
+        await webInterface.init(
+            _web3,
+            accountConfig,
+            poolConfig,
+            redisInterface
+        )
 
         /* Initailize token interface. */
-        await tokenInterface.init(redisInterface, _web3, accountConfig, poolConfig, pool_env)
+        await tokenInterface.init(
+            redisInterface,
+            _web3,
+            accountConfig,
+            poolConfig,
+            pool_env
+        )
 
         /* Initialize peer interface. */
-        await peerInterface.init(_web3, accountConfig, poolConfig, redisInterface, tokenInterface, pool_env) // initJSONRPCServer()
+        await peerInterface.init(
+            _web3,
+            accountConfig,
+            poolConfig,
+            redisInterface,
+            tokenInterface,
+            pool_env
+        ) // initJSONRPCServer()
 
         /* Initailize diagnostics manager. */
         // NOTE: This is for the MASTER ONLY
-        await diagnosticsManager.init(redisInterface, webInterface, peerInterface)
+        await diagnosticsManager.init(
+            redisInterface,
+            webInterface,
+            peerInterface
+        )
 
         /* Initialize the web server. */
         // NOTE: This is for the MASTER ONLY
-        await webServer.init(https_enabled, webInterface, peerInterface)
+        await webServer.init(
+            https_enabled,
+            webInterface,
+            peerInterface
+        )
 
         /* Update peer interface. */
         peerInterface.update()
@@ -132,10 +158,23 @@ async function init(_web3, _numCpus) {
         await redisInterface.init()
 
         /* Initailize token interface. */
-        await tokenInterface.init(redisInterface, _web3, accountConfig, poolConfig, pool_env)
+        await tokenInterface.init(
+            redisInterface,
+            _web3,
+            accountConfig,
+            poolConfig,
+            pool_env
+        )
 
         /* Initialize peer interface. */
-        await peerInterface.init(_web3, accountConfig, poolConfig, redisInterface, tokenInterface, pool_env) // initJSONRPCServer()
+        await peerInterface.init(
+            _web3,
+            accountConfig,
+            poolConfig,
+            redisInterface,
+            tokenInterface,
+            pool_env
+        ) // initJSONRPCServer()
 
         /* Initialize redis interface. */
         // FIXME: Why are we doing this again??
@@ -143,11 +182,18 @@ async function init(_web3, _numCpus) {
 
         /* Initailize token interface. */
         // FIXME: Why are we doing this again??
-        await tokenInterface.init(redisInterface, _web3, accountConfig, poolConfig, pool_env)
+        await tokenInterface.init(
+            redisInterface,
+            _web3,
+            accountConfig,
+            poolConfig,
+            pool_env
+        )
 
         /* Start peer interface listener. */
         peerInterface.listenForJSONRPC(8080)
-        return
+
+        // return
 
         /* Update token interface. */
         tokenInterface.update()
