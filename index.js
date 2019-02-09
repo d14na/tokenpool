@@ -21,7 +21,7 @@ const poolConfig = require('./pool.config').config
 console.log('\nPool Configuration\n', JSON.stringify(poolConfig, null, 4))
 console.log('\nInitializing...')
 
-/* Initailize interfaces. */
+/* Initialize interfaces. */
 const redisInterface = require('./lib/redis-interface')
 const peerInterface  = require('./lib/peer-interface')
 const tokenInterface = require('./lib/token-interface')
@@ -36,24 +36,24 @@ const diagnosticsManager = require('./lib/diagnostics-manager')
 /* Initialize Web3. */
 const Web3 = require('web3')
 
-/* Initailize new Web3 instance. */
+/* Initialize new Web3 instance. */
 const web3 = new Web3()
 
 /* Initialize account configuration. */
 let accountConfig = {}
 
 /* Initialize web3 provider. */
-const specified_web3 = poolConfig.web3provider
+const specified_web3 = poolConfig.web3provider || null
 
 /* Validate web3 provider. */
 if (specified_web3 !== null) {
     web3.setProvider(specified_web3)
 
-    console.log(`Connecting to provided web3 [ ${specified_web3} ]`)
+    console.log(`Connecting to CONFIG Web3 Provider [ ${specified_web3} ]`)
 }
 
 if (pool_env === 'test') {
-    console.log('RUNNING IN TEST MODE [ ROPSTEN ]')
+    console.log('RUNNING IN TEST MODE [ ROPSTEN ]', specified_web3)
 
     /* Validate web3 provider. */
     if (specified_web3 === null) {
@@ -63,7 +63,7 @@ if (pool_env === 'test') {
     /* Set accounts. */
     accountConfig = require('./test.account.config').accounts
 } else if (pool_env == 'staging') {
-    console.log('RUNNING IN STAGING MODE [ MAINNET ]')
+    console.log('RUNNING IN STAGING MODE [ MAINNET ]', specified_web3)
 
     /* Validate web3 provider. */
     if (specified_web3 === null) {
@@ -73,7 +73,7 @@ if (pool_env === 'test') {
     /* Set accounts. */
     accountConfig = require('./account.config').accounts
 } else {
-    console.log('RUNNING IN DEFAULT MODE [ MAINNET ]')
+    console.log('RUNNING IN DEFAULT MODE [ MAINNET ]', specified_web3)
 
     /* Validate web3 provider. */
     if (specified_web3 === null) {
@@ -112,7 +112,7 @@ async function init(_web3, _numCpus) {
             redisInterface
         )
 
-        /* Initailize token interface. */
+        /* Initialize token interface. */
         await tokenInterface.init(
             redisInterface,
             _web3,
@@ -131,7 +131,7 @@ async function init(_web3, _numCpus) {
             pool_env
         ) // initJSONRPCServer()
 
-        /* Initailize diagnostics manager. */
+        /* Initialize diagnostics manager. */
         // NOTE: This is for the MASTER ONLY
         await diagnosticsManager.init(
             redisInterface,
@@ -147,17 +147,23 @@ async function init(_web3, _numCpus) {
             peerInterface
         )
 
+        /* Update token interface. */
+        // NOTE: Previously missing, but fails on redis.
+        tokenInterface.update()
+
         /* Update peer interface. */
         peerInterface.update()
     } else {
         // Code to run if we're in a worker process
 
+        // NOTE: Used to split the workload between workers.
+        //       eg. updater | jsonlistener
         const worker_id = cluster.worker.id
 
         /* Initialize redis interface. */
         await redisInterface.init()
 
-        /* Initailize token interface. */
+        /* Initialize token interface. */
         await tokenInterface.init(
             redisInterface,
             _web3,
@@ -177,23 +183,21 @@ async function init(_web3, _numCpus) {
         ) // initJSONRPCServer()
 
         /* Initialize redis interface. */
-        // FIXME: Why are we doing this again??
-        await redisInterface.init()
+        // FIXME: Why are we doing this twice??
+        // await redisInterface.init()
 
-        /* Initailize token interface. */
-        // FIXME: Why are we doing this again??
-        await tokenInterface.init(
-            redisInterface,
-            _web3,
-            accountConfig,
-            poolConfig,
-            pool_env
-        )
+        /* Initialize token interface. */
+        // FIXME: Why are we doing this twice??
+        // await tokenInterface.init(
+        //     redisInterface,
+        //     _web3,
+        //     accountConfig,
+        //     poolConfig,
+        //     pool_env
+        // )
 
         /* Start peer interface listener. */
         peerInterface.listenForJSONRPC(8080)
-
-        // return
 
         /* Update token interface. */
         tokenInterface.update()

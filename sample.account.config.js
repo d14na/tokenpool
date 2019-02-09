@@ -1,11 +1,11 @@
 const accounts = {
     minting: {
-        address: '0xf3243bAbF74Ead828ac656877137Df705868fD66',
-        privateKey: '00000'
+        address: '0x9402ceF956C1FbBf302738c6589680AFebf101f6',
+        privateKey: '0x00000000000000000000000000000000'
     },
     payment: {
-        address: '0xf3243bAbF74Ead828ac656877137Df705868fD66',
-        privateKey: '00000'
+        address: '0x96ac4a61DB2D6F529a939447Fa279B97ad0924e9', // InfinityWell
+        privateKey: '0x00000000000000000000000000000000'
     }
 }
 
